@@ -54,7 +54,7 @@ if (!isset($_GET['UT'])) {
             $token_used = $res['token_used'];
             $wi = $res['whiteIP'];
             $bi = $res['blackIP'];
-            $timeEntered = $res['timeEntered'];
+            $token_count = $res['token_count'];
             // if white ip and black ip is empty in database
             if (empty($wi) && empty($bi)) {
                 require_once("./showCoin.php");
