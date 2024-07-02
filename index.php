@@ -1,4 +1,5 @@
 <?php
+
 //  connect to databasse
 $servername = 'localhost';
 $dbname = 'ahrom_for_passing';
