@@ -55,22 +55,22 @@ if ($token_limit < 0 && $token_used > 100) {
 }
 // check wihte ips and black ips
 
-    // check if symbol or time scope entered or not
-    if (!isset($_GET['symbol']) && !isset($_GET['from']) && !isset($_GET['to'])) {
-        echo "symbol or time scope is not entered";
-        exit;
-    }
-    if (!isset($_GET['symbol']) && isset($_GET['from']) && isset($_GET['to'])) {
-        echo "symbol is not entered";
-        exit;
-    }
-    if ((isset($_GET['symbol']) && !isset($_GET['from']) && !isset($_GET['to'])) ||
-        (isset($_GET['symbol']) && !isset($_GET['from']) && isset($_GET['to'])) ||
-        (isset($_GET['symbol']) && isset($_GET['from']) && !isset($_GET['to']))
-    ) {
-        echo "enter time scope";
-        exit;
-    }
+// check if symbol or time scope entered or not
+if (!isset($_GET['symbol']) && !isset($_GET['from']) && !isset($_GET['to'])) {
+    echo "symbol or time scope is not entered";
+    exit;
+}
+if (!isset($_GET['symbol']) && isset($_GET['from']) && isset($_GET['to'])) {
+    echo "symbol is not entered";
+    exit;
+}
+if ((isset($_GET['symbol']) && !isset($_GET['from']) && !isset($_GET['to'])) ||
+    (isset($_GET['symbol']) && !isset($_GET['from']) && isset($_GET['to'])) ||
+    (isset($_GET['symbol']) && isset($_GET['from']) && !isset($_GET['to']))
+) {
+    echo "enter time scope";
+    exit;
+}
 
 if (empty($wi) && empty($bi)) {
 
@@ -98,8 +98,8 @@ if (empty($wi) && empty($bi)) {
                 "time" => $beginning_of_day, "close" => $result['PRICE'], "open" => $result['OPENDAY'], "high" => $result['HIGHDAY'], "low" => $result['LOWDAY'],
                 "volumefrom" => $result['VOLUMEDAY'], "volumeto" => $result['VOLUMEDAYTO']
             ];
+            array_push($coinList['data'], $coin);
         }
-        array_push($coinList['data'], $coin);
         echo json_encode($coinList);
     }
     exit;
@@ -107,8 +107,8 @@ if (empty($wi) && empty($bi)) {
 // check white ip , if white ip is not empty do this
 $userIP = $_SERVER["REMOTE_ADDR"];
 
+$white = false;
 if (!empty($wi)) {
-    $white = false;
     // white ips from database
     $wIP = json_decode($wi, true);
     $wIPList = $wIP['ip'];
@@ -119,43 +119,10 @@ if (!empty($wi)) {
             break;
         }
     }
-    if ($white == false) {
-        echo "user ip is invalid";
-        exit;
-    }
-
-    // if symbol and time scope entered
-    if (isset($_GET['symbol']) && isset($_GET['from']) && isset($_GET['to'])) {
-
-        $sql = "SELECT * FROM crypto_historical_data WHERE symbol=? AND time BETWEEN ? AND ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$_GET['symbol'], $_GET['from'], $_GET['to']]);
-        $res = $stmt->fetchAll();
-        $coinList['symbol'] = $_GET['symbol'];
-        foreach ($res as $r) {
-            array_push($coinList['data'], [
-                "time" => $r['time'], "close" => $r['close'], "open" => $r['open'], "high" => $r['high'], "low" => $r['low'],
-                "volumefrom" => $r['volumefrom'], "volumeto" => $r['volumeto']
-            ]);
-        }
-        // if time range is until today
-        if ($_GET['to'] >= $beginning_of_day) {
-            $qr = "SELECT * FROM crypto WHERE symbol= ?";
-            $stm = $conn->prepare($qr);
-            $stm->execute([$_GET['symbol']]);
-            $result = $stm->fetch();
-            $coin = [
-                "time" => $beginning_of_day, "close" => $result['PRICE'], "open" => $result['OPENDAY'], "high" => $result['HIGHDAY'], "low" => $result['LOWDAY'],
-                "volumefrom" => $result['VOLUMEDAY'], "volumeto" => $result['VOLUMEDAYTO']
-            ];
-        }
-        array_push($coinList['data'], $coin);
-        echo json_encode($coinList);
-    }
 }
 // check white ip , if white ip is not empty do this
+$black = false;
 if (!empty($bi)) {
-    $black = false;
     // black ips from database
     $bIP = json_decode($bi, true);
     $bIPList = $bIP['ip'];
@@ -166,39 +133,37 @@ if (!empty($bi)) {
             break;
         }
     }
-    if ($black == true) {
-        echo "user ip is invalid";
-        exit;
+}
+if ($white == false || $black == true) {
+    echo "user ip is invalid";
+    exit;
+}
+
+// if symbol and time scope entered
+if (isset($_GET['symbol']) && isset($_GET['from']) && isset($_GET['to'])) {
+
+    $sql = "SELECT * FROM crypto_historical_data WHERE symbol=? AND time BETWEEN ? AND ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$_GET['symbol'], $_GET['from'], $_GET['to']]);
+    $res = $stmt->fetchAll();
+    $coinList['symbol'] = $_GET['symbol'];
+    foreach ($res as $r) {
+        array_push($coinList['data'], [
+            "time" => $r['time'], "close" => $r['close'], "open" => $r['open'], "high" => $r['high'], "low" => $r['low'],
+            "volumefrom" => $r['volumefrom'], "volumeto" => $r['volumeto']
+        ]);
     }
-
-    // if symbol and time scope entered
-    if (isset($_GET['symbol']) && isset($_GET['from']) && isset($_GET['to'])) {
-
-        $sql = "SELECT * FROM crypto_historical_data WHERE symbol=? AND time BETWEEN ? AND ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$_GET['symbol'], $_GET['from'], $_GET['to']]);
-        $res = $stmt->fetchAll();
-        $coinList['symbol'] = $_GET['symbol'];
-        foreach ($res as $r) {
-            array_push($coinList['data'], [
-                "time" => $r['time'], "close" => $r['close'], "open" => $r['open'], "high" => $r['high'], "low" => $r['low'],
-                "volumefrom" => $r['volumefrom'], "volumeto" => $r['volumeto']
-            ]);
-        }
-        // if time range is until today
-        if ($_GET['to'] >= $beginning_of_day) {
-            $qr = "SELECT * FROM crypto WHERE symbol= ?";
-            $stm = $conn->prepare($qr);
-            $stm->execute([$_GET['symbol']]);
-            $result = $stm->fetch();
-            $coin = [
-                "time" => $beginning_of_day, "close" => $result['PRICE'], "open" => $result['OPENDAY'], "high" => $result['HIGHDAY'], "low" => $result['LOWDAY'],
-                "volumefrom" => $result['VOLUMEDAY'], "volumeto" => $result['VOLUMEDAYTO']
-            ];
-        }
+    // if time range is until today
+    if ($_GET['to'] >= $beginning_of_day) {
+        $qr = "SELECT * FROM crypto WHERE symbol= ?";
+        $stm = $conn->prepare($qr);
+        $stm->execute([$_GET['symbol']]);
+        $result = $stm->fetch();
+        $coin = [
+            "time" => $beginning_of_day, "close" => $result['PRICE'], "open" => $result['OPENDAY'], "high" => $result['HIGHDAY'], "low" => $result['LOWDAY'],
+            "volumefrom" => $result['VOLUMEDAY'], "volumeto" => $result['VOLUMEDAYTO']
+        ];
         array_push($coinList['data'], $coin);
-        echo json_encode($coinList);
     }
-    
-
+    echo json_encode($coinList);
 }
